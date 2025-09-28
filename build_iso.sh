@@ -86,6 +86,13 @@ BR2_PACKAGE_PYTHON3_QRCODE=y
 BR2_PACKAGE_PYTHON3_PYJWT=y
 BR2_PACKAGE_PYTHON3_CRYPTOGRAPHY=y
 
+# Optional Python dependencies inside the target (readline, gdbm)
+BR2_PACKAGE_READLINE=y
+BR2_PACKAGE_GDBM=y
+
+# Kernel build helper (objtool) needs libelf on host and target
+BR2_PACKAGE_LIBELF=y
+
 # Essential system utilities
 BR2_PACKAGE_HDPARM=y
 BR2_PACKAGE_DMIDECODE=y

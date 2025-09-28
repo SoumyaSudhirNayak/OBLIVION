@@ -15,7 +15,7 @@ jobs:
 
       # 2. Installs the necessary build tools
       - name: Install Build Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses-dev git
+        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses-dev git libgdbm-dev libreadline-dev libelf-dev
 
       # 3. Makes your build script executable
       - name: Make Script Executable
