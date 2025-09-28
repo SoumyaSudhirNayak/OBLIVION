@@ -27,16 +27,16 @@ ETCDIR="$OVERLAY/etc"
 mkdir -p "$APPDIR" "$ETCDIR"
 
 # Copy production Python sources
+echo "--- Copying OBLIVION source files into overlay ---"
 cp -v "$PROJECT_ROOT/src/"*.py "$APPDIR/"
 # Bundle private key if available (non-fatal if missing)
 if [ -f "$PROJECT_ROOT/CP/python-scripts/output/private_key.pem" ]; then
   cp -v "$PROJECT_ROOT/CP/python-scripts/output/private_key.pem" "$APPDIR/"
 else
-  echo "WARNING: private_key.pem not found at CP/python-scripts/output/private_key.pem. Build will continue, but runtime JWT signing will fail until key is provided."
+  echo "WARNING: private_key.pem not found. Build will continue, but JWT signing will fail."
 fi
 
 # Create BusyBox inittab to autostart OBLIVION on tty1
-# We replace the default getty on tty1 by our Python entrypoint.
 cat > "$ETCDIR/inittab" << 'INITTAB'
 # /etc/inittab - BusyBox init configuration
 
@@ -45,7 +45,6 @@ cat > "$ETCDIR/inittab" << 'INITTAB'
 ::ctrlaltdel:/sbin/reboot
 
 # Auto-launch OBLIVION on the primary console
-# Launch the production TUI directly per Phase 2 requirement
 tty1::respawn:/usr/bin/python3 /usr/local/oblivion/oblivion_core.py
 
 # Optional additional consoles
@@ -66,7 +65,6 @@ BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="x86_64"
-# Embed the root filesystem as initramfs inside the kernel image (simplifies ISO)
 BR2_TARGET_ROOTFS_INITRAMFS=y
 
 # Build a bootable ISO with GRUB2 (i386-pc) loader
@@ -74,43 +72,54 @@ BR2_TARGET_ROOTFS_ISO9660=y
 BR2_TARGET_ROOTFS_ISO9660_GRUB2=y
 BR2_TARGET_GRUB2=y
 BR2_TARGET_GRUB2_I386_PC=y
-# Ensure GRUB has iso9660 and required modules built-in, and boot partition is CD
 BR2_TARGET_GRUB2_BOOT_PARTITION="cd"
 BR2_TARGET_GRUB2_BUILTIN_MODULES="linux normal iso9660 biosdisk"
-
-# Console over VGA
-BR2_TARGET_GENERIC_GETTY=n
-BR2_SYSTEM_DHCP=""
 
 # Rootfs overlay to inject our app and config
 BR2_ROOTFS_OVERLAY="${OVERLAY}"
 
 # Python3 and runtime deps for our app
 BR2_PACKAGE_PYTHON3=y
-# Third-party Python packages required by OBLIVION
 BR2_PACKAGE_PYTHON_PILLOW=y
 BR2_PACKAGE_PYTHON_QRCODE=y
 BR2_PACKAGE_PYTHON_PYJWT=y
 BR2_PACKAGE_PYTHON_CRYPTOGRAPHY=y
+
+# --- CORRECTED: Added essential system utilities for OBLIVION ---
+BR2_PACKAGE_HDparm=y
+BR2_PACKAGE_DMIDECODE=y
+BR2_PACKAGE_UTIL_LINUX=y
+BR2_PACKAGE_UTIL_LINUX_LSBLK=y
 EOF
 
-# Apply defconfig and build
+# --- CORRECTED: Robust build sequence to prevent legacy config errors ---
+
+echo "--- Applying initial configuration ---"
 make BR2_DEFCONFIG="$DEFCONFIG" defconfig
 
+echo "--- Updating configuration to new format ---"
+make olddefconfig
+
 # Parallel build (fall back to 1 if nproc not available)
+echo "--- Starting final build (this will take a while) ---"
 JOBS=1
 if command -v nproc >/dev/null 2>&1; then JOBS=$(nproc); fi
 make -j"$JOBS"
 
+# --- Final step: Copy the ISO to the project root ---
 IMAGES_DIR="$PWD/output/images"
 ISO_SRC="$IMAGES_DIR/rootfs.iso9660"
 OUT_ISO="$PROJECT_ROOT/oblivion_os.iso"
 
 if [ -f "$ISO_SRC" ]; then
   cp -v "$ISO_SRC" "$OUT_ISO"
-  echo "SUCCESS: Created ISO at $OUT_ISO"
-  echo "You can boot this ISO on bare metal or in a VM. It will auto-launch OBLIVION on tty1."
+  echo ""
+  echo "--- SUCCESS ---"
+  echo "Created ISO at: $OUT_ISO"
+  echo "You can now boot this ISO in a virtual machine."
 else
-  echo "ERROR: ISO not found at $ISO_SRC. Please open menuconfig and ensure ISO9660 target is enabled."
+  echo ""
+  echo "--- BUILD FAILED ---"
+  echo "ERROR: ISO not found at $ISO_SRC. Please check the build logs for errors."
   exit 1
 fi
