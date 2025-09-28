@@ -2,7 +2,7 @@ name: Build OBLIVION ISO
 
 on:
   push:
-    branches: [ main ] # Runs the build every time you push to the main branch
+    branches: [ master ] # Runs the build every time you push to the main branch
 
 jobs:
   build:
