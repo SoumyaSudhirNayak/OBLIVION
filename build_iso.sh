@@ -20,6 +20,10 @@ fi
 
 cd buildroot
 
+# Ensure no legacy configs from previous runs
+echo "--- Resetting previous Buildroot state (distclean) ---"
+make distclean || true
+
 # Prepare overlay with our Python app and autostart
 OVERLAY="$WORKDIR/overlay"
 APPDIR="$OVERLAY/usr/local/oblivion"
@@ -67,32 +71,29 @@ BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="x86_64"
 BR2_TARGET_ROOTFS_INITRAMFS=y
 
-# Build a bootable ISO with GRUB2 (i386-pc) loader
+# Build a bootable ISO with ISOLINUX (avoids GRUB2 legacy symbols)
 BR2_TARGET_ROOTFS_ISO9660=y
-BR2_TARGET_ROOTFS_ISO9660_GRUB2=y
-BR2_TARGET_GRUB2=y
-BR2_TARGET_GRUB2_I386_PC=y
-BR2_TARGET_GRUB2_BOOT_PARTITION="cd"
-BR2_TARGET_GRUB2_BUILTIN_MODULES="linux normal iso9660 biosdisk"
+BR2_TARGET_ROOTFS_ISO9660_ISOLINUX=y
+BR2_TARGET_ROOTFS_ISO9660_HYBRID=y
 
 # Rootfs overlay to inject our app and config
 BR2_ROOTFS_OVERLAY="${OVERLAY}"
 
-# Python3 and runtime deps for our app
+# Python3 and runtime deps for our app (correct python3-* symbols)
 BR2_PACKAGE_PYTHON3=y
-BR2_PACKAGE_PYTHON_PILLOW=y
-BR2_PACKAGE_PYTHON_QRCODE=y
-BR2_PACKAGE_PYTHON_PYJWT=y
-BR2_PACKAGE_PYTHON_CRYPTOGRAPHY=y
+BR2_PACKAGE_PYTHON3_PILLOW=y
+BR2_PACKAGE_PYTHON3_QRCODE=y
+BR2_PACKAGE_PYTHON3_PYJWT=y
+BR2_PACKAGE_PYTHON3_CRYPTOGRAPHY=y
 
-# --- CORRECTED: Added essential system utilities for OBLIVION ---
-BR2_PACKAGE_HDparm=y
+# Essential system utilities
+BR2_PACKAGE_HDPARM=y
 BR2_PACKAGE_DMIDECODE=y
 BR2_PACKAGE_UTIL_LINUX=y
 BR2_PACKAGE_UTIL_LINUX_LSBLK=y
 EOF
 
-# --- CORRECTED: Robust build sequence to prevent legacy config errors ---
+# --- Robust build sequence ---
 
 echo "--- Applying initial configuration ---"
 make BR2_DEFCONFIG="$DEFCONFIG" defconfig
