@@ -1,0 +1,33 @@
+name: Build OBLIVION ISO
+
+on:
+  push:
+    branches: [ main ] # Runs the build every time you push to the main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Use a fresh Ubuntu machine in the cloud
+
+    steps:
+      # 1. Checks out your repository's code onto the cloud machine
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # 2. Installs the necessary build tools
+      - name: Install Build Dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses-dev git
+
+      # 3. Makes your build script executable
+      - name: Make Script Executable
+        run: chmod +x build_iso.sh
+
+      # 4. Runs the ISO build script
+      - name: Run the Build Script
+        run: ./build_iso.sh
+
+      # 5. Uploads the final ISO file so you can download it
+      - name: Upload the Final ISO as an Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oblivion-iso-artifact
+          path: oblivion_os.iso
